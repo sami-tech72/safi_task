@@ -1,8 +1,8 @@
 import { CommonModule, DatePipe, NgFor, NgIf } from '@angular/common';
 import { Component, OnInit, WritableSignal, inject, signal } from '@angular/core';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
+import pdfMake from '../pdfmake/build/pdfmake';
+import pdfFonts from '../pdfmake/build/vfs_fonts';
 import {
   ApiService,
   ClaimItem,
