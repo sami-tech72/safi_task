@@ -1,184 +1,295 @@
 <div class="app-shell">
-  <header class="app-header">
-    <h1>Invoicing & Expense Claims</h1>
-    <p>Track expense claims, move them across states, and produce invoices with pdfmake.</p>
+  <header class="app-hero">
+    <div class="hero-content">
+      <p class="eyebrow">Finance workspace</p>
+      <h1>Invoicing & Expense Claims</h1>
+      <p>Track expense claims, move them across states, and produce invoices without leaving this cockpit.</p>
+      <div class="hero-actions">
+        <a href="#create-claim" class="btn primary">New claim</a>
+        <a href="#claims-list" class="btn ghost">Browse claims</a>
+      </div>
+    </div>
+    <div class="hero-metrics">
+      <div class="metric-card">
+        <p>Claims on screen</p>
+        <strong>{{ claimCount() }}</strong>
+        <span>{{ claimValueTotal() | currency }}</span>
+      </div>
+      <div class="metric-card">
+        <p>Approval rate</p>
+        <strong>{{ invoiceApprovalRate() }}%</strong>
+        <span>Invoices approved</span>
+      </div>
+      <div class="metric-card">
+        <p>Awaiting action</p>
+        <strong>{{ pendingClaimsCount() }}</strong>
+        <span>Pending claims</span>
+      </div>
+      <div class="metric-card">
+        <p>Inventory coverage</p>
+        <strong>{{ stockTracked() }}</strong>
+        <span>Items tracked</span>
+      </div>
+    </div>
   </header>
 
-  <section class="panel">
-    <h2>Create an Expense Claim</h2>
-    <form [formGroup]="claimForm" (ngSubmit)="submitClaim()" class="form-grid">
-      <label>
-        Claimant Name
-        <input type="text" formControlName="claimantName" placeholder="Jane Doe" />
-      </label>
-      <label class="full-row">
-        Description
-        <textarea formControlName="description" rows="2" placeholder="Trip to HQ..."></textarea>
-      </label>
-      <div formArrayName="items" class="items-list">
-        <div class="item-row" *ngFor="let item of itemsArray.controls; let i = index" [formGroupName]="i">
-          <input type="text" formControlName="itemName" placeholder="Item name" />
-          <input type="number" formControlName="quantity" min="1" />
-          <input type="number" formControlName="unitPrice" min="0" step="0.01" />
-          <button type="button" (click)="removeItem(i)" [disabled]="itemsArray.length === 1">Remove</button>
+  <section class="insights-grid">
+    <article class="stat-card">
+      <h3>Upcoming Approvals</h3>
+      <p>Invoices needing approval</p>
+      <div class="stat-value">{{ invoicesAwaitingApproval() }}</div>
+      <small>Coordinate with finance partners to clear the queue.</small>
+    </article>
+    <article class="stat-card">
+      <h3>Claim Load</h3>
+      <p>{{ pendingClaimsCount() }} claims waiting for movement</p>
+      <small>Use the status history to keep teams aligned.</small>
+    </article>
+    <article class="stat-card">
+      <h3>Inventory Health</h3>
+      <p>{{ stockTracked() }} tracked stock lines</p>
+      <small>Quantities update automatically after each approval.</small>
+    </article>
+  </section>
+
+  <div class="dashboard-grid">
+    <div class="grid-main">
+      <section class="panel form-panel" id="create-claim">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Capture</p>
+            <h2>Create an Expense Claim</h2>
+          </div>
+          <p class="panel-subtitle">Add claim lines, save, and immediately see them in the claims list.</p>
         </div>
-      </div>
-      <div class="form-actions">
-        <button type="button" (click)="addItem()">Add Item</button>
-        <button type="submit" [disabled]="isSubmitting()">
-          {{ isSubmitting() ? 'Saving...' : 'Save Claim' }}
-        </button>
-      </div>
-    </form>
-  </section>
+        <form [formGroup]="claimForm" (ngSubmit)="submitClaim()" class="form-grid">
+          <label>
+            Claimant Name
+            <input type="text" formControlName="claimantName" placeholder="Jane Doe" />
+          </label>
+          <label class="full-row">
+            Description
+            <textarea formControlName="description" rows="2" placeholder="Trip to HQ..."></textarea>
+          </label>
+          <div formArrayName="items" class="items-list">
+            <div class="item-row" *ngFor="let item of itemsArray.controls; let i = index" [formGroupName]="i">
+              <input type="text" formControlName="itemName" placeholder="Item name" />
+              <input type="number" formControlName="quantity" min="1" />
+              <input type="number" formControlName="unitPrice" min="0" step="0.01" />
+              <button type="button" class="btn subtle" (click)="removeItem(i)" [disabled]="itemsArray.length === 1">
+                Remove
+              </button>
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn secondary" (click)="addItem()">Add Item</button>
+            <button type="submit" class="btn primary" [disabled]="isSubmitting()">
+              {{ isSubmitting() ? 'Saving...' : 'Save Claim' }}
+            </button>
+          </div>
+        </form>
+      </section>
 
-  <section class="panel">
-    <div class="panel-header">
-      <h2>Claims</h2>
-      <div class="pagination">
-        <button type="button" (click)="goToPreviousClaims()">Prev</button>
-        <span>Page {{ (claimsPage()?.page ?? 0) + 1 }} of {{ claimsPage()?.totalPages || 1 }}</span>
-        <button type="button" (click)="goToNextClaims()">Next</button>
-      </div>
-    </div>
-    <table class="data-table" *ngIf="claimsPage() as page">
-      <thead>
-        <tr>
-          <th>Reference</th>
-          <th>Claimant</th>
-          <th>Status</th>
-          <th>Total</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let claim of page.content">
-          <td>{{ claim.referenceNumber }}</td>
-          <td>{{ claim.claimantName }}</td>
-          <td><span class="status-chip">{{ claim.status }}</span></td>
-          <td>{{ claim.totalAmount | currency }}</td>
-          <td><button (click)="selectClaim(claim)">View</button></td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
-
-  <section class="panel" *ngIf="selectedClaim() as claim">
-    <h2>Claim Details</h2>
-    <div class="claim-meta">
-      <div>
-        <strong>Reference:</strong>
-        <span>{{ claim.referenceNumber }}</span>
-      </div>
-      <div>
-        <strong>Status:</strong>
-        <span class="status-chip">{{ claim.status }}</span>
-      </div>
-      <div>
-        <strong>Total:</strong>
-        <span>{{ claim.totalAmount | currency }}</span>
-      </div>
-    </div>
-    <h3>Items</h3>
-    <table class="data-table">
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Qty</th>
-          <th>Price</th>
-          <th>Line Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let item of claim.items">
-          <td>{{ item.itemName }}</td>
-          <td>{{ item.quantity }}</td>
-          <td>{{ item.unitPrice | currency }}</td>
-          <td>{{ item.quantity * item.unitPrice | currency }}</td>
-        </tr>
-      </tbody>
-    </table>
-
-    <h3>Move Claim</h3>
-    <form [formGroup]="transitionForm" (ngSubmit)="performTransition()" class="transition-form">
-      <label>
-        Target Status
-        <select formControlName="targetStatus">
-          <option *ngFor="let status of transitionsFor(claim)" [ngValue]="status">
-            {{ status }}
-          </option>
-        </select>
-      </label>
-      <label>
-        Comment
-        <textarea formControlName="comment" rows="2" placeholder="Add reasoning..."></textarea>
-      </label>
-      <button type="submit" [disabled]="transitionSubmitting()">
-        {{ transitionSubmitting() ? 'Updating...' : 'Apply Transition' }}
-      </button>
-    </form>
-
-    <h3>Status History</h3>
-    <ol class="history" *ngIf="claimHistory() as history">
-      <li *ngFor="let entry of history">
-        <div>
-          <strong>{{ entry.fromStatus }} → {{ entry.toStatus }}</strong>
-          <span>{{ entry.createdAt | date: 'short' }}</span>
+      <section class="panel" id="claims-list">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Pipeline</p>
+            <h2>Claims</h2>
+          </div>
+          <div class="pagination">
+            <button type="button" class="btn subtle" (click)="goToPreviousClaims()">Prev</button>
+            <span>Page {{ (claimsPage()?.page ?? 0) + 1 }} of {{ claimsPage()?.totalPages || 1 }}</span>
+            <button type="button" class="btn subtle" (click)="goToNextClaims()">Next</button>
+          </div>
         </div>
-        <p>{{ entry.comment }}</p>
-      </li>
-    </ol>
-  </section>
+        <div class="table-scroll" *ngIf="claimsPage() as page">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Reference</th>
+                <th>Claimant</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let claim of page.content">
+                <td>{{ claim.referenceNumber }}</td>
+                <td>{{ claim.claimantName }}</td>
+                <td>
+                  <span class="status-chip" [ngClass]="statusTone(claim.status)">{{ claim.status }}</span>
+                </td>
+                <td>{{ claim.totalAmount | currency }}</td>
+                <td><button class="btn link" (click)="selectClaim(claim)">View</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-  <section class="panel">
-    <div class="panel-header">
-      <h2>Invoices</h2>
-      <div class="pagination">
-        <button type="button" (click)="goToPreviousInvoices()">Prev</button>
-        <span>Page {{ (invoicesPage()?.page ?? 0) + 1 }} of {{ invoicesPage()?.totalPages || 1 }}</span>
-        <button type="button" (click)="goToNextInvoices()">Next</button>
-      </div>
+      <section class="panel highlight" *ngIf="selectedClaim() as claim">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Detail</p>
+            <h2>{{ claim.claimantName }} — {{ claim.referenceNumber }}</h2>
+          </div>
+          <span class="status-chip" [ngClass]="statusTone(claim.status)">{{ claim.status }}</span>
+        </div>
+        <div class="claim-meta">
+          <div>
+            <span class="label">Reference</span>
+            <strong>{{ claim.referenceNumber }}</strong>
+          </div>
+          <div>
+            <span class="label">Total</span>
+            <strong>{{ claim.totalAmount | currency }}</strong>
+          </div>
+          <div>
+            <span class="label">Items</span>
+            <strong>{{ claim.items.length }}</strong>
+          </div>
+        </div>
+
+        <h3>Items</h3>
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Qty</th>
+                <th>Price</th>
+                <th>Line Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of claim.items">
+                <td>{{ item.itemName }}</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.unitPrice | currency }}</td>
+                <td>{{ item.quantity * item.unitPrice | currency }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="transition-card">
+          <div>
+            <h3>Move Claim</h3>
+            <p>Pick the next status and leave a short rationale for the audit trail.</p>
+          </div>
+          <form [formGroup]="transitionForm" (ngSubmit)="performTransition()" class="transition-form">
+            <label>
+              Target Status
+              <select formControlName="targetStatus">
+                <option *ngFor="let status of transitionsFor(claim)" [ngValue]="status">
+                  {{ status }}
+                </option>
+              </select>
+            </label>
+            <label>
+              Comment
+              <textarea formControlName="comment" rows="2" placeholder="Add reasoning..."></textarea>
+            </label>
+            <button type="submit" class="btn primary" [disabled]="transitionSubmitting()">
+              {{ transitionSubmitting() ? 'Updating...' : 'Apply Transition' }}
+            </button>
+          </form>
+        </div>
+
+        <h3>Status History</h3>
+        <ol class="history" *ngIf="claimHistory() as history">
+          <li *ngFor="let entry of history">
+            <div>
+              <strong>{{ entry.fromStatus }} → {{ entry.toStatus }}</strong>
+              <span>{{ entry.createdAt | date: 'short' }}</span>
+            </div>
+            <p>{{ entry.comment }}</p>
+          </li>
+        </ol>
+      </section>
     </div>
-    <table class="data-table" *ngIf="invoicesPage() as invoices">
-      <thead>
-        <tr>
-          <th>Invoice #</th>
-          <th>Status</th>
-          <th>Total</th>
-          <th>Stock Applied</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let invoice of invoices.content">
-          <td>{{ invoice.invoiceNumber }}</td>
-          <td><span class="status-chip">{{ invoice.status }}</span></td>
-          <td>{{ invoice.total | currency }}</td>
-          <td>{{ invoice.stockApplied ? 'Yes' : 'No' }}</td>
-          <td>
-            <button (click)="downloadPdf(invoice)">Download PDF</button>
-            <button (click)="approveInvoice(invoice)" [disabled]="invoice.status === 'APPROVED'">Approve</button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
 
-  <section class="panel">
-    <h2>Current Stock</h2>
-    <table class="data-table" *ngIf="stockEntries() as stock">
-      <thead>
-        <tr>
-          <th>Item</th>
-          <th>Quantity Received</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let entry of stock">
-          <td>{{ entry.itemName }}</td>
-          <td>{{ entry.totalQuantity }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </section>
+    <div class="grid-side">
+      <section class="panel mini-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Billing</p>
+            <h2>Invoices</h2>
+          </div>
+          <div class="pagination">
+            <button type="button" class="btn subtle" (click)="goToPreviousInvoices()">Prev</button>
+            <button type="button" class="btn subtle" (click)="goToNextInvoices()">Next</button>
+          </div>
+        </div>
+        <div class="table-scroll" *ngIf="invoicesPage() as invoices">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Invoice #</th>
+                <th>Status</th>
+                <th>Total</th>
+                <th>Stock Applied</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let invoice of invoices.content">
+                <td>{{ invoice.invoiceNumber }}</td>
+                <td>
+                  <span class="status-chip" [ngClass]="statusTone(invoice.status)">{{ invoice.status }}</span>
+                </td>
+                <td>{{ invoice.total | currency }}</td>
+                <td>{{ invoice.stockApplied ? 'Yes' : 'No' }}</td>
+                <td class="actions-cell">
+                  <button class="btn link" (click)="downloadPdf(invoice)">PDF</button>
+                  <button
+                    class="btn secondary"
+                    (click)="approveInvoice(invoice)"
+                    [disabled]="invoice.status === 'APPROVED'"
+                  >
+                    Approve
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel mini-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Inventory</p>
+            <h2>Current Stock</h2>
+          </div>
+        </div>
+        <div class="table-scroll" *ngIf="stockEntries() as stock">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>Quantity Received</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of stock">
+                <td>{{ entry.itemName }}</td>
+                <td>{{ entry.totalQuantity }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel mini-panel note-panel">
+        <h3>Workflow tips</h3>
+        <ul>
+          <li>Use the items grid to log every reimbursable detail.</li>
+          <li>Click a claim row to expose transition controls and history.</li>
+          <li>Invoices automatically update inventory when approved.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
 </div>

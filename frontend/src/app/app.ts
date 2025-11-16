@@ -57,6 +57,55 @@ export class App implements OnInit {
     this.loadStock();
   }
 
+  claimCount(): number {
+    return this.claimsPage()?.content.length ?? 0;
+  }
+
+  pendingClaimsCount(): number {
+    const page = this.claimsPage();
+    if (!page) {
+      return 0;
+    }
+    return page.content.filter(claim => !['APPROVED', 'PAID'].includes(claim.status)).length;
+  }
+
+  claimValueTotal(): number {
+    const page = this.claimsPage();
+    return page ? page.content.reduce((sum, claim) => sum + claim.totalAmount, 0) : 0;
+  }
+
+  invoicesAwaitingApproval(): number {
+    const invoices = this.invoicesPage();
+    return invoices ? invoices.content.filter(invoice => invoice.status !== 'APPROVED').length : 0;
+  }
+
+  invoiceApprovalRate(): number {
+    const invoices = this.invoicesPage();
+    if (!invoices || invoices.content.length === 0) {
+      return 0;
+    }
+    const approved = invoices.content.filter(invoice => invoice.status === 'APPROVED').length;
+    return Math.round((approved / invoices.content.length) * 100);
+  }
+
+  stockTracked(): number {
+    return this.stockEntries().length;
+  }
+
+  statusTone(status: string): string {
+    const normalized = (status ?? '').toUpperCase();
+    if (normalized.includes('APPROVED') || normalized.includes('PAID')) {
+      return 'status-chip--success';
+    }
+    if (normalized.includes('REJECT')) {
+      return 'status-chip--danger';
+    }
+    if (normalized.includes('DRAFT')) {
+      return 'status-chip--muted';
+    }
+    return 'status-chip--warning';
+  }
+
   get itemsArray(): FormArray {
     return this.claimForm.get('items') as FormArray;
   }
