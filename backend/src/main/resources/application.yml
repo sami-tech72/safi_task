@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:claimsdb;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ''
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true
+server:
+  port: 8080
+invoice:
+  pdf:
+    header-image-base64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADZwHhWm3c+QAAAABJRU5ErkJggg==
+    footer-image-base64: iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP4DwQACfsD/Q4F9SIAAAAASUVORK5CYII=
+    tax-rate: 0.1
+logging:
+  level:
+    org.hibernate.SQL: warn
