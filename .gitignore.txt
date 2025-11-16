@@ -1,0 +1,30 @@
+# === BACKEND (Spring Boot - Maven) ===
+backend/target/
+backend/.mvn/wrapper/maven-wrapper.jar
+backend/.mvn/wrapper/maven-wrapper.properties
+backend/.idea/
+backend/*.iml
+backend/.classpath
+backend/.project
+
+# === FRONTEND (Angular) ===
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.vscode/
+
+# === OS / Misc ===
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# === IDE ===
+*.swp
+*.swo
+.vscode/
+
+# === Environment / security ===
+.env
+.env.local
+.env.*.local
