@@ -21,6 +21,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class InvoiceService {
 
+    private static final String INLINE_PIXEL =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==";
+
     private final InvoiceRepository invoiceRepository;
     private final StockService stockService;
 
@@ -31,14 +34,12 @@ public class InvoiceService {
     public InvoiceService(
             InvoiceRepository invoiceRepository,
             StockService stockService,
-            @Value("${invoice.pdf.tax-rate:0.1}") BigDecimal taxRate,
-            @Value("${invoice.pdf.header-image-base64}") String headerImage,
-            @Value("${invoice.pdf.footer-image-base64}") String footerImage) {
+            @Value("${invoice.pdf.tax-rate:0.1}") BigDecimal taxRate) {
         this.invoiceRepository = invoiceRepository;
         this.stockService = stockService;
         this.taxRate = taxRate;
-        this.headerImage = headerImage;
-        this.footerImage = footerImage;
+        this.headerImage = INLINE_PIXEL;
+        this.footerImage = INLINE_PIXEL;
     }
 
     @Transactional
