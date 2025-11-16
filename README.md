@@ -10,6 +10,56 @@ This repository contains a Spring Boot backend and an Angular standalone fronten
 | Backend | Spring Boot 3 + JPA/Hibernate + H2/MySQL (configurable) | REST APIs for CRUD operations, workflow enforcement, invoice creation/approval, and stock adjustments. |
 | Persistence | Relational database | Persists claims, invoice line items, history, and aggregated stock summaries. |
 
+## System design
+
+```text
+┌──────────────┐      HTTPS REST       ┌────────────────┐      Service layer      ┌────────────────────┐      ORM        ┌───────────────┐
+│ Angular SPA  │ ───────────────────▶ │ Controllers     │ ─────────────────────▶ │ Expense/Invoice    │ ─────────────▶ │ Spring Data   │
+│ (signals +   │ ◀─────────────────── │ (claims,        │ ◀──────────────────── │ services +         │ ◀──────────── │ repositories  │
+│ reactive forms│     JSON responses   │ invoices, stock)│    DTO↔entity mapping │ StockService)      │   entity graph│               │
+└──────────────┘                       └────────────────┘                         └────────────────────┘               └──────┬────────┘
+                                                                                                                JDBC/Hibernate│
+                                                                                                                             ▼
+                                                                                                                       Relational DB
+```
+
+**Design goals**
+
+1. **Tight workflow cohesion** – every status change travels through `ClaimWorkflow`, guaranteeing a single enforcement point for UI dropdowns and backend invariants.
+2. **Task-friendly UI** – the Angular shell keeps creation, review, invoicing, and stock tracking visible simultaneously so operators never lose context mid-task.
+3. **Reversible operations** – invoices and stock entries are derived artifacts that can be regenerated or rolled back automatically when workflow states regress.
+
+### Backend structure
+
+- **Controller layer** exposes REST endpoints and translates HTTP artifacts to DTOs.
+- **Service layer** contains pure business logic. Each service owns one aggregate (Claims, Invoices, Stock) and orchestrates side effects such as history snapshots, invoice generation, and stock deltas.
+- **Repository layer** uses Spring Data JPA interfaces; entities remain persistence-agnostic so the same services run against H2 (tests) or MySQL (prod) without code changes.
+
+### Data model snapshot
+
+| Table / Entity | Purpose | Key fields |
+| --- | --- | --- |
+| `ExpenseClaim` | Parent aggregate for each claim. | `id`, `claimant`, `status`, `totalAmount`, `items`, `history` |
+| `ClaimItem` | Line items per claim. | `description`, `qty`, `unitPrice`, `taxRate` |
+| `StatusHistory` | Audit log of transitions. | `fromStatus`, `toStatus`, `changedBy`, `changedAt`, `comment` |
+| `Invoice` / `InvoiceItem` | Generated bill per approved claim. | `invoiceNumber`, `approvedAt`, `subtotal`, `tax`, `claimId` |
+| `StockSummary` | Aggregated stock derived from invoices. | `itemCode`, `quantity`, `lastAdjustedAt`, `sourceInvoiceId` |
+
+Relationships:
+
+- `ExpenseClaim` 1→N `ClaimItem`
+- `ExpenseClaim` 1→N `StatusHistory`
+- `ExpenseClaim` 1→1 `Invoice` (optional)
+- `Invoice` 1→N `InvoiceItem`
+- `StockSummary` stores computed totals keyed by item, not a hard FK, making reconciliation idempotent.
+
+### Deployment view
+
+- **Local** – Angular dev server (`npm run start`) talks directly to Spring Boot (`./mvnw spring-boot:run`) over localhost. Hot reload on both sides speeds iteration.
+- **Production** – Build artifacts (`ng build`, `mvn package`) are deployed behind a reverse proxy. The SPA is served as static assets, while the API is exposed under `/api/**`. Database connectivity is provided via managed MySQL.
+- **Observability hooks** – Spring Boot actuators (if enabled) expose health metrics, while the frontend logs only actionable errors to keep browser consoles clean.
+
+
 Key backend packages:
 - `controller`: HTTP endpoints for claims, invoices, stock, plus a `RestExceptionHandler` for consistent error responses.
 - `service`: Business logic, including the `ClaimWorkflow` state machine, invoice generation, PDF payload creation, and stock aggregation.
