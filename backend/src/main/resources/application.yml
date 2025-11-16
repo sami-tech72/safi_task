@@ -1,8 +1,8 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:claimsdb;DB_CLOSE_DELAY=-1
-    driver-class-name: org.h2.Driver
-    username: sa
+    url: jdbc:mysql://localhost:3306/safi
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
     password: ''
   jpa:
     hibernate:
