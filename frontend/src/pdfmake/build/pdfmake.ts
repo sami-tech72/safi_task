@@ -129,7 +129,7 @@ function base64ToBytes(base64: string): Uint8Array {
 }
 
 function ensureDataUrl(value: string): string {
-  if (value.startsWith('data:')) {
+  if (/^(data:|https?:|blob:)/.test(value)) {
     return value;
   }
   return `data:image/png;base64,${value}`;
@@ -141,6 +141,7 @@ async function convertImage(name: string, source?: string): Promise<ImagePayload
   }
   return new Promise((resolve, reject) => {
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
       const maxWidth = 520;
       const scale = Math.min(1, maxWidth / (img.naturalWidth || maxWidth));
