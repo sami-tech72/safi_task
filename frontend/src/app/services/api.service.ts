@@ -82,6 +82,15 @@ export interface StockSummary {
   totalQuantity: number;
 }
 
+export interface DashboardMetrics {
+  totalClaims: number;
+  pendingClaims: number;
+  totalClaimValue: number;
+  invoicesAwaitingApproval: number;
+  invoiceApprovalRate: number;
+  stockTracked: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly http = inject(HttpClient);
@@ -124,5 +133,9 @@ export class ApiService {
 
   getStock(): Observable<StockSummary[]> {
     return this.http.get<StockSummary[]>(`${this.baseUrl}/stock`);
+  }
+
+  getDashboardMetrics(): Observable<DashboardMetrics> {
+    return this.http.get<DashboardMetrics>(`${this.baseUrl}/dashboard/metrics`);
   }
 }
