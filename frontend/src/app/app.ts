@@ -3,6 +3,9 @@ import { Component, OnInit, WritableSignal, inject, signal } from '@angular/core
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import pdfMake from '../pdfmake/build/pdfmake';
 import pdfFonts from '../pdfmake/build/vfs_fonts';
+
+const headerUrl = 'https://via.placeholder.com/600x100.png?text=Letterhead';
+const footerUrl = 'https://via.placeholder.com/600x80.png?text=Footer';
 import {
   ApiService,
   ClaimItem,
@@ -257,8 +260,8 @@ export class App implements OnInit {
   }
 
   private buildPdf(data: InvoicePdfData): void {
-    const headerImage = `data:image/png;base64,${data.headerImage}`;
-    const footerImage = `data:image/png;base64,${data.footerImage}`;
+    const headerImage = headerUrl || (data.headerImage ? `data:image/png;base64,${data.headerImage}` : undefined);
+    const footerImage = footerUrl || (data.footerImage ? `data:image/png;base64,${data.footerImage}` : undefined);
     const tableBody = [
       ['Item', 'Qty', 'Price', 'Line Total'],
       ...data.items.map(item => [
