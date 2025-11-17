@@ -7,6 +7,7 @@ import {
   ApiService,
   ClaimItem,
   ClaimStatus,
+  DashboardMetrics,
   ExpenseClaim,
   InvoiceModel,
   InvoicePdfData,
@@ -42,6 +43,7 @@ export class App implements OnInit {
   readonly claimsPage: WritableSignal<PageResponse<ExpenseClaim> | null> = signal(null);
   readonly invoicesPage: WritableSignal<PageResponse<InvoiceModel> | null> = signal(null);
   readonly stockEntries: WritableSignal<StockSummary[]> = signal([]);
+  readonly dashboardMetrics = signal<DashboardMetrics | null>(null);
   readonly selectedClaim = signal<ExpenseClaim | null>(null);
   readonly claimHistory = signal<StatusHistoryEntry[]>([]);
   readonly isSubmitting = signal(false);
@@ -55,31 +57,52 @@ export class App implements OnInit {
     this.loadClaims();
     this.loadInvoices();
     this.loadStock();
+    this.loadMetrics();
   }
 
   claimCount(): number {
-    return this.claimsPage()?.content.length ?? 0;
+    const metrics = this.dashboardMetrics();
+    if (metrics) {
+      return metrics.totalClaims;
+    }
+    return this.claimsPage()?.totalElements ?? 0;
   }
 
   pendingClaimsCount(): number {
+    const metrics = this.dashboardMetrics();
+    if (metrics) {
+      return metrics.pendingClaims;
+    }
     const page = this.claimsPage();
     if (!page) {
       return 0;
     }
-    return page.content.filter(claim => !['APPROVED', 'PAID'].includes(claim.status)).length;
+    return page.content.filter(claim => claim.status !== 'APPROVED' && claim.status !== 'INVOICED').length;
   }
 
   claimValueTotal(): number {
+    const metrics = this.dashboardMetrics();
+    if (metrics) {
+      return metrics.totalClaimValue;
+    }
     const page = this.claimsPage();
     return page ? page.content.reduce((sum, claim) => sum + claim.totalAmount, 0) : 0;
   }
 
   invoicesAwaitingApproval(): number {
+    const metrics = this.dashboardMetrics();
+    if (metrics) {
+      return metrics.invoicesAwaitingApproval;
+    }
     const invoices = this.invoicesPage();
     return invoices ? invoices.content.filter(invoice => invoice.status !== 'APPROVED').length : 0;
   }
 
   invoiceApprovalRate(): number {
+    const metrics = this.dashboardMetrics();
+    if (metrics) {
+      return metrics.invoiceApprovalRate;
+    }
     const invoices = this.invoicesPage();
     if (!invoices || invoices.content.length === 0) {
       return 0;
@@ -89,6 +112,10 @@ export class App implements OnInit {
   }
 
   stockTracked(): number {
+    const metrics = this.dashboardMetrics();
+    if (metrics) {
+      return metrics.stockTracked;
+    }
     return this.stockEntries().length;
   }
 
@@ -146,6 +173,7 @@ export class App implements OnInit {
         this.itemsArray.clear();
         this.addItem();
         this.loadClaims();
+        this.loadMetrics();
       },
       error: () => this.isSubmitting.set(false)
     });
@@ -177,6 +205,10 @@ export class App implements OnInit {
     this.api.getStock().subscribe(entries => this.stockEntries.set(entries));
   }
 
+  loadMetrics(): void {
+    this.api.getDashboardMetrics().subscribe(data => this.dashboardMetrics.set(data));
+  }
+
   selectClaim(claim: ExpenseClaim): void {
     this.selectedClaim.set(claim);
     const options = this.transitionsFor(claim);
@@ -202,6 +234,7 @@ export class App implements OnInit {
         this.loadClaims(this.claimPageIndex());
         this.loadInvoices(this.invoicePageIndex());
         this.loadStock();
+        this.loadMetrics();
         this.api.getHistory(updated.id).subscribe(history => this.claimHistory.set(history));
       },
       error: () => this.transitionSubmitting.set(false)
@@ -212,6 +245,7 @@ export class App implements OnInit {
     this.api.approveInvoice(invoice.id).subscribe(updated => {
       this.loadInvoices(this.invoicePageIndex());
       this.loadStock();
+      this.loadMetrics();
       if (this.selectedClaim() && this.selectedClaim()!.invoiceId === updated.id) {
         this.selectedClaim.set({ ...this.selectedClaim()!, invoiceId: updated.id });
       }
